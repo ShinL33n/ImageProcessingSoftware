@@ -4,6 +4,8 @@ using namespace std;
 #include <windows.h>
 
 #include "ConfigReader.h"
+#include "ResultWriter.h"
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -18,5 +20,8 @@ int main(int argc, char* argv[])
     cout << "[Main] Source:      " << config.sourcePath << "\n"
          << "[Main] Destination: " << config.destPath << "\n"
          << "[Main] Threads:     " << config.threadCount << "\n";
+
+    // Prepare output helpers
+    ResultWriter   writer(config.destPath);
 }
 
