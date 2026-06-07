@@ -2,6 +2,7 @@ using namespace std;
 #include <iostream>
 #include <string>
 #include <windows.h>
+#include "ImageLoader.h"
 
 #include "ConfigReader.h"
 int main(int argc, char* argv[])
@@ -18,5 +19,12 @@ int main(int argc, char* argv[])
     cout << "[Main] Source:      " << config.sourcePath << "\n"
          << "[Main] Destination: " << config.destPath << "\n"
          << "[Main] Threads:     " << config.threadCount << "\n";
+
+    //Scan source folder
+    ImageLoader loader(config.sourcePath);
+    if (loader.count() == 0) {
+    std:cerr << "[Main] No images found. Exiting \n";
+        return 1;
+    }
 }
 
