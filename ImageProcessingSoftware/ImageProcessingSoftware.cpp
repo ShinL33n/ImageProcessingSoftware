@@ -2,10 +2,11 @@ using namespace std;
 #include <iostream>
 #include <string>
 #include <windows.h>
-#include "ImageLoader.h"
 
 #include "ConfigReader.h"
 #include "ResultWriter.h"
+#include "ImageLoader.h"
+#include "ThumbnailBuilder.h"
 
 int main(int argc, char* argv[])
 {
@@ -25,11 +26,13 @@ int main(int argc, char* argv[])
     //Scan source folder
     ImageLoader loader(config.sourcePath);
     if (loader.count() == 0) {
-    std:cerr << "[Main] No images found. Exiting \n";
+        cerr << "[Main] No images found. Exiting \n";
         return 1;
     }
 
     // Prepare output helpers
     ResultWriter   writer(config.destPath);
+    ThumbnailBuilder srcThumbs(cv::Size(160, 120), 8);
+    ThumbnailBuilder dstThumbs(cv::Size(160, 120), 8);
 }
 
