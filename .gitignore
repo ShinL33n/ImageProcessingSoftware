@@ -1,4 +1,7 @@
-./ImageProcessingSoftware/.vs
-./ImageProcessingSoftware/ImagePro.*
-./ImageProcessingSoftware/x64
+./ImageProcessingSoftware/.vs/
+./ImageProcessingSoftware/ImagePro.*/
+./ImageProcessingSoftware/x64/
+./ImageProcessingSoftware/ImageProcessingSoftware.sln
 ./ImageProcessingSoftware/ImageProcessingSoftware.vcxproj
+./ImageProcessingSoftware/ImageProcessingSoftware.vcxproj.filters
+./ImageProcessingSoftware/ImageProcessingSoftware.vcxproj.user
