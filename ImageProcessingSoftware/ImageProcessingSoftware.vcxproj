@@ -131,6 +131,8 @@
   <ItemGroup>
     <ClCompile Include="ConfigReader.cpp" />
     <ClCompile Include="ImageLoader.cpp" />
+    <ClCompile Include="ImageProcessor.cpp" />
+    <ClCompile Include="ThreadPool.cpp" />
     <ClCompile Include="ThumbnailBuilder.cpp" />
     <ClCompile Include="ImageProcessingSoftware.cpp" />
     <ClCompile Include="ResultWriter.cpp" />
@@ -138,6 +140,8 @@
   <ItemGroup>
     <ClInclude Include="ConfigReader.h" />
     <ClInclude Include="ImageLoader.h" />
+    <ClInclude Include="ImageProcessor.h" />
+    <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="ThumbnailBuilder.h" />
     <ClInclude Include="ResultWriter.h" />
   </ItemGroup>
