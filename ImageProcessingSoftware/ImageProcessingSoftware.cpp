@@ -6,6 +6,7 @@ using namespace std;
 
 #include "ConfigReader.h"
 #include "ResultWriter.h"
+#include "ThumbnailBuilder.h"
 
 int main(int argc, char* argv[])
 {
@@ -31,5 +32,7 @@ int main(int argc, char* argv[])
 
     // Prepare output helpers
     ResultWriter   writer(config.destPath);
+    ThumbnailBuilder srcThumbs(cv::Size(160, 120), 8);
+    ThumbnailBuilder dstThumbs(cv::Size(160, 120), 8);
 }
 
