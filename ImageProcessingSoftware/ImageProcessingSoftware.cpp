@@ -5,6 +5,8 @@ using namespace std;
 #include "ImageLoader.h"
 
 #include "ConfigReader.h"
+#include "ResultWriter.h"
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -26,5 +28,8 @@ int main(int argc, char* argv[])
     std:cerr << "[Main] No images found. Exiting \n";
         return 1;
     }
+
+    // Prepare output helpers
+    ResultWriter   writer(config.destPath);
 }
 
