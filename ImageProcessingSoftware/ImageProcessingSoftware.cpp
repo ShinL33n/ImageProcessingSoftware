@@ -1,7 +1,21 @@
+/**
+ * EdgeDetect - Image processing application
+ * Reads config from .ini, loads images from source folder,
+ * applies Canny edge detection multithreadedly, saves results
+ * and thumbnail collages to destination folder.
+ *
+ * Usage: EdgeDetect.exe config.ini
+ */
 using namespace std;
+#ifdef _DEBUG
+    #define _CRTDBG_MAP_ALLOC
+    #include <crtdbg.h>
+#endif
+
 #include <iostream>
 #include <string>
 #include <windows.h>
+#include <chrono>
 
 #include "ConfigReader.h"
 #include "ResultWriter.h"
@@ -13,12 +27,23 @@ using namespace std;
 // Mutex protecting access to shared ThumbnailBuilder instances from worker threads
 static CRITICAL_SECTION g_thumbCS;
 
+// Thread-safe success / failure counters for the final summary (UC-01)
+static volatile long g_success = 0;
+static volatile long g_failed = 0;
+
 int main(int argc, char* argv[])
 {
+    #ifdef _DEBUG
+        // Dump any memory leaks to the debug output at program exit.
+        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    #endif
+
     if (argc < 2) {
         cerr << "Usage: " << argv[0] << " config.ini\n";
         return 1;
     }
+
+    auto tStart = std::chrono::steady_clock::now();
 
     // Load configuration
     ConfigReader config;
@@ -36,9 +61,9 @@ int main(int argc, char* argv[])
     }
 
     // Prepare output helpers
-    ResultWriter   writer(config.destPath);
-    ThumbnailBuilder srcThumbs(cv::Size(160, 120), 8);
-    ThumbnailBuilder dstThumbs(cv::Size(160, 120), 8);
+    ResultWriter     writer(config.destPath);
+    ThumbnailBuilder srcThumbs(cv::Size(config.thumbWidth, config.thumbHeight), config.thumbColumns);
+    ThumbnailBuilder dstThumbs(cv::Size(config.thumbWidth, config.thumbHeight), config.thumbColumns);
 
     InitializeCriticalSection(&g_thumbCS);
 
@@ -50,26 +75,44 @@ int main(int argc, char* argv[])
 
         for (size_t i = 0; i < loader.count(); ++i) {
             pool.submit([&, i]() {
-                // Load original image
-                cv::Mat src = loader.loadAt(i);
-                if (src.empty()) return;
+                // Per-thread exception handling: a failure on one image must NOT
+                // crash the program or abort the remaining images
+                try {
+                    // Load original image
+                    cv::Mat src = loader.loadAt(i);
+                    if (src.empty()) {
+                        InterlockedIncrement(&g_failed);
+                        return;
+                    }
 
-                // Run edge detection
-                cv::Mat edges = processor.process(src);
+                    // Run edge detection
+                    cv::Mat edges = processor.process(src);
 
-                // Derive output filename from original path
-                std::string srcPath = loader.filePaths()[i];
-                size_t slash = srcPath.find_last_of("\\/");
-                std::string filename = (slash == std::string::npos) ? srcPath : srcPath.substr(slash + 1);
+                    // Derive output filename from original path
+                    const std::string& srcPath = loader.filePaths()[i];
+                    size_t slash = srcPath.find_last_of("\\/");
+                    std::string filename = (slash == std::string::npos) ? srcPath : srcPath.substr(slash + 1);
 
-                // Save processed image
-                writer.saveImage(edges, filename);
+                    // Save processed image and count the outcome
+                    if (writer.saveImage(edges, filename))
+                        InterlockedIncrement(&g_success);
+                    else
+                        InterlockedIncrement(&g_failed);
 
-                // Add thumbnails to collages (protected section)
-                EnterCriticalSection(&g_thumbCS);
-                srcThumbs.addImage(src);
-                dstThumbs.addImage(edges);
-                LeaveCriticalSection(&g_thumbCS);
+                    // Add thumbnails to collages (protected section)
+                    EnterCriticalSection(&g_thumbCS);
+                    srcThumbs.addImage(src);
+                    dstThumbs.addImage(edges);
+                    LeaveCriticalSection(&g_thumbCS);
+                }
+                catch (const std::exception& e) {
+                    InterlockedIncrement(&g_failed);
+                    std::cerr << "[Worker] Error on image #" << i << ": " << e.what() << "\n";
+                }
+                catch (...) {
+                    InterlockedIncrement(&g_failed);
+                    std::cerr << "[Worker] Unknown error on image #" << i << "\n";
+                }
                 });
         }
 
@@ -86,6 +129,15 @@ int main(int argc, char* argv[])
     if (!collageSrc.empty()) writer.saveCollage(collageSrc, "_collage_source.jpg");
     if (!collageDst.empty()) writer.saveCollage(collageDst, "_collage_edges.jpg");
 
-    std::cout << "[Main] Done. Processed " << loader.count() << " image(s).\n";
+    // Summary: total / success / failure / elapsed time
+    auto   tEnd = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double>(tEnd - tStart).count();
+
+    std::cout << "[Main] Done. Total: " << loader.count()
+              << ", succeeded: " << g_success
+              << ", failed: " << g_failed
+              << ", time: " << elapsed << " s\n";
+    
+    return 0;
 }
 
